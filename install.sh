@@ -440,13 +440,13 @@ echo "2. Completely wipe $TARGET_DISK"
 echo "3. Install Windows 10"
 echo "4. Reboot the system"
 echo
-echo -n "Continue? (y/N): "
-read -r user_confirm
+#echo -n "Continue? (y/N): "
+#read -r user_confirm
 
-if [[ ! "$user_confirm" =~ ^[Yy]$ ]]; then
-    log "Installation cancelled by user"
-    exit 0
-fi
+#if [[ ! "$user_confirm" =~ ^[Yy]$ ]]; then
+#    log "Installation cancelled by user"
+#    exit 0
+#fi
 
 # Start installation
 main_install
