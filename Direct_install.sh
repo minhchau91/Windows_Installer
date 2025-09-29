@@ -1,18 +1,6 @@
 #!/bin/bash
 # Script hoàn chỉnh cuối cùng
 
-echo "=== CÀI ĐẶT WINDOWS TRÊN VPS ==="
-
-# Kiểm tra disk
-echo "Disk hiện tại:"
-lsblk
-
-#read -p "Xác nhận xóa toàn bộ /dev/sda? (YES/no): " confirm
-#if [ "$confirm" != "YES" ]; then
-#    echo "Hủy bỏ"
-#    exit 1
-#fi
-
 case "$1" in
   2012)
     URL="https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file"
@@ -24,6 +12,18 @@ case "$1" in
     URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
     ;;
 esac
+
+echo "=== CÀI ĐẶT WINDOWS $1 TRÊN VPS ==="
+
+# Kiểm tra disk
+echo "Disk hiện tại:"
+lsblk
+
+#read -p "Xác nhận xóa toàn bộ /dev/sda? (YES/no): " confirm
+#if [ "$confirm" != "YES" ]; then
+#    echo "Hủy bỏ"
+#    exit 1
+#fi
 
 WINDOWS_IMAGE_URL=$(curl -s "$URL" | grep 'download1585' | grep -oP 'href="\K[^"]+')
 
