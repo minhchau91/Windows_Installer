@@ -32,7 +32,7 @@ echo "Direct Link: $WINDOWS_IMAGE_URL"
 # Tạo script đơn giản
 #cat > /tmp/final_install.sh << SCRIPT
 ##!/bin/bash
-exec > /tmp/windows_install.log 2>&1
+#exec > /tmp/windows_install.log 2>&1
 
 echo "$(date): Bắt đầu tải Windows 10..."
 
