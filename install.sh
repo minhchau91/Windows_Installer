@@ -1,454 +1,322 @@
 #!/bin/bash
-# Windows 10 One-Liner Installer - Complete Script
-# Usage: curl -sSL https://your-domain.com/install.sh | bash
-# Or: wget -qO- https://your-domain.com/install.sh | bash
+# Windows 10 VPS Installer - Production Safe Version
+# This version is designed specifically for VPS environments
 
 # =============================================================================
-# CONFIGURATION - THAY ĐỔI URL Ở ĐÂY
+# CONFIGURATION
 # =============================================================================
 WINDOWS_IMAGE_URL="https://download1585.mediafire.com/o5491hknzjpgXDMnnIBehISjrEfnDzSsGXFVJBDOG6v5wT3eOI2373OllDGCIE8s2nBii11nVbVQCcZIAGQgSBuDQFSbhPUrbiRbOrLR4YJoNSoGDNmOfTKb9K4YbTn3zdXL9ebR8eGcgWFlCLyYm9f__FO0oovAidvMUsHgCnYhow/hpp7sdtlgnyzj4y/Windows10.gz"
 
-# Backup URLs (optional)
-BACKUP_URLS=(
-    "https://backup-server.com/windows10.gz"
-    "https://mirror-server.com/windows10.gz"
-)
-
-# =============================================================================
-# MAIN INSTALLER CODE - KHÔNG CẦN CHỈNH SỬA
-# =============================================================================
-
 export LANG=C
-set -e
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Logging function
-log() {
-    echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} $1"
-}
+log() { echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
-
-warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-# Check if running as root
+# Root check
 if [ "$(id -u)" != "0" ]; then
-    echo "Switching to root..."
     sudo bash "$0" "$@"
     exit $?
 fi
 
-# Check bash shell
-if [ -z "$BASH" ]; then
-    bash "$0" "$@"
-    exit 0
-fi
-
-# System compatibility checks
-check_system() {
-    log "Checking system compatibility..."
+# VPS Detection and Warning
+detect_vps_environment() {
+    log "Detecting VPS environment..."
     
-    # Check architecture
-    if [ "$(uname -m)" = "aarch64" ]; then
-        error "ARM64 architecture is not supported!"
+    VPS_TYPE="unknown"
+    
+    # Check for common VPS indicators
+    if [ -d /proc/vz ]; then
+        VPS_TYPE="OpenVZ"
+    elif [ -f /.dockerenv ]; then
+        VPS_TYPE="Docker"
+    elif systemd-detect-virt >/dev/null 2>&1; then
+        VPS_TYPE=$(systemd-detect-virt)
+    elif dmesg | grep -i "hypervisor" >/dev/null 2>&1; then
+        VPS_TYPE="VM"
+    fi
+    
+    # Check cloud providers
+    if curl -s --connect-timeout 3 http://169.254.169.254/latest/meta-data/instance-id >/dev/null 2>&1; then
+        CLOUD_PROVIDER="AWS"
+    elif curl -s --connect-timeout 3 -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/id >/dev/null 2>&1; then
+        CLOUD_PROVIDER="GCP"
+    elif curl -s --connect-timeout 3 -H "Metadata: true" http://169.254.169.254/metadata/instance/compute/vmId >/dev/null 2>&1; then
+        CLOUD_PROVIDER="Azure"
+    else
+        CLOUD_PROVIDER="Unknown"
+    fi
+    
+    log "Environment: $VPS_TYPE on $CLOUD_PROVIDER"
+    
+    # Warnings for problematic environments
+    if [ "$VPS_TYPE" = "OpenVZ" ] || [ "$VPS_TYPE" = "lxc" ]; then
+        error "Container environments ($VPS_TYPE) are not supported!"
+        error "This installer requires full virtualization (KVM/Xen/VMware)"
         exit 1
     fi
-    
-    # Check virtualization
-    if command -v hostnamectl > /dev/null; then
-        if hostnamectl 2>/dev/null | grep -q "openvz"; then
-            error "OpenVZ containers are not supported!"
-            exit 1
-        fi
-        if hostnamectl 2>/dev/null | grep -q "lxc"; then
-            error "LXC containers are not supported!"
-            exit 1
-        fi
-    fi
-    
-    # Check required tools
-    local required_tools=("wget" "curl" "lsblk" "fdisk" "dd" "gunzip")
-    local missing_tools=()
-    
-    for tool in "${required_tools[@]}"; do
-        if ! command -v "$tool" > /dev/null 2>&1; then
-            missing_tools+=("$tool")
-        fi
-    done
-    
-    if [ ${#missing_tools[@]} -ne 0 ]; then
-        warning "Installing missing tools: ${missing_tools[*]}"
-        
-        if command -v apt-get > /dev/null; then
-            apt-get update -qq
-            apt-get install -qq -y "${missing_tools[@]}" || true
-        elif command -v yum > /dev/null; then
-            yum install -q -y "${missing_tools[@]}" || true
-        elif command -v dnf > /dev/null; then
-            dnf install -q -y "${missing_tools[@]}" || true
-        fi
-        
-        # Verify tools are now available
-        for tool in "${missing_tools[@]}"; do
-            if ! command -v "$tool" > /dev/null 2>&1; then
-                error "Failed to install required tool: $tool"
-                exit 1
-            fi
-        done
-    fi
-    
-    success "System compatibility check passed"
 }
 
-# Detect target disk
-detect_target_disk() {
-    log "Detecting target disk..."
+# Improved disk detection for VPS
+detect_vps_disk() {
+    log "Detecting VPS disk configuration..."
     
-    # Method 1: Find disk containing root filesystem
-    local root_disk=$(lsblk -no PKNAME $(findmnt -n -o SOURCE /) 2>/dev/null)
-    if [ -n "$root_disk" ]; then
-        TARGET_DISK="/dev/$root_disk"
+    # Show current disk layout
+    echo
+    echo "Current disk layout:"
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE
+    echo
+    
+    # Find the boot disk
+    BOOT_DISK=$(df / | tail -1 | awk '{print $1}' | sed 's/[0-9]*$//')
+    log "Boot disk detected: $BOOT_DISK"
+    
+    # Check if there are multiple disks
+    DISK_COUNT=$(lsblk -rno NAME,TYPE | awk '$2=="disk"' | wc -l)
+    log "Total disks found: $DISK_COUNT"
+    
+    if [ "$DISK_COUNT" -eq 1 ]; then
+        warning "Only one disk found - this is the boot disk!"
+        warning "Installing Windows will immediately crash this system"
+        echo
+        echo "RECOMMENDED SOLUTIONS:"
+        echo "1. Add a second disk to your VPS"
+        echo "2. Create a snapshot/backup first"
+        echo "3. Use rescue mode installation"
+        echo "4. Use cloud provider's Windows image instead"
+        echo
+        #read -p "Continue with single disk anyway? (type 'CRASH'): " crash_confirm
+        
+        #if [ "$crash_confirm" != "CRASH" ]; then
+        #    log "Installation cancelled for safety"
+        #    exit 0
+        #fi
+        
+        TARGET_DISK="$BOOT_DISK"
+        DANGEROUS_MODE=true
     else
-        # Method 2: Alternative approach
-        root_disk=$(lsblk -rno NAME,MOUNTPOINT | awk '$2=="/" {print $1}' | sed 's/[0-9]*$//')
-        if [ -n "$root_disk" ]; then
-            TARGET_DISK="/dev/$root_disk"
-        else
-            # Method 3: Fallback to first disk
-            TARGET_DISK=$(lsblk -rno NAME,TYPE | awk '$2=="disk" {print "/dev/"$1; exit}')
-        fi
+        # Multiple disks - let user choose
+        echo "Multiple disks detected:"
+        lsblk -rno NAME,SIZE,TYPE | awk '$3=="disk" {print NR ". /dev/" $1 " (" $2 ")"}'
+        echo
+        #read -p "Select target disk number (or 'auto' for second disk): " disk_choice
+        
+        #if [ "$disk_choice" = "auto" ]; then
+        TARGET_DISK=$(lsblk -rno NAME,TYPE | awk '$2=="disk" {print "/dev/" $1}' | sed -n '2p')
+        #else
+        #    TARGET_DISK=$(lsblk -rno NAME,TYPE | awk '$2=="disk" {print "/dev/" $1}' | sed -n "${disk_choice}p")
+        #fi
+        
+        DANGEROUS_MODE=false
     fi
     
-    # Final fallback
     if [ -z "$TARGET_DISK" ]; then
-        TARGET_DISK="/dev/sda"
+        error "Could not determine target disk"
+        exit 1
     fi
     
     log "Target disk: $TARGET_DISK"
     
-    # Get disk size
-    local disk_size=$(lsblk -rno SIZE "$TARGET_DISK" 2>/dev/null | head -1)
-    if [ -n "$disk_size" ]; then
-        log "Disk size: $disk_size"
+    # Final safety check
+    if [ "$TARGET_DISK" = "$BOOT_DISK" ]; then
+        warning "TARGET DISK IS THE SAME AS BOOT DISK!"
+        warning "THIS WILL CRASH THE SYSTEM IMMEDIATELY!"
+        DANGEROUS_MODE=true
     fi
 }
 
-# Show system information
-show_system_info() {
-    echo
-    echo "==============================================="
-    echo "         Windows 10 Installer"
-    echo "==============================================="
-    echo "Hostname: $(hostname)"
-    echo "OS: $(cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d'"' -f2 || uname -s)"
-    echo "Kernel: $(uname -r)"
-    echo "Architecture: $(uname -m)"
-    echo "Memory: $(free -h | awk '/^Mem:/ {print $2}')"
-    echo "Target Disk: $TARGET_DISK"
-    echo "Image URL: $WINDOWS_IMAGE_URL"
-    echo "==============================================="
-    echo
-}
-
-# Download with retry and resume support
-download_image() {
+# Download function optimized for VPS
+download_image_vps() {
     local url="$1"
     local output="$2"
-    local max_retries=3
     
-    log "Downloading Windows 10 image..."
-    log "URL: $url"
-    log "Output: $output"
+    log "Starting download from MediaFire..."
+    log "Expected size: ~5GB"
+    log "Estimated time: 5-15 minutes on typical VPS connection"
     
-    for ((i=1; i<=max_retries; i++)); do
-        log "Download attempt $i/$max_retries"
-        
-        # Try wget first (with resume support)
-        if command -v wget > /dev/null; then
-            if wget -c --progress=bar:force --timeout=30 -O "$output" "$url"; then
-                if [ -s "$output" ]; then
-                    success "Download completed with wget"
-                    return 0
-                fi
-            fi
-        fi
-        
-        # Try curl (with resume support)
-        if command -v curl > /dev/null; then
-            if curl -C - -L --progress-bar --max-time 1800 -o "$output" "$url"; then
-                if [ -s "$output" ]; then
-                    success "Download completed with curl"
-                    return 0
-                fi
-            fi
-        fi
-        
-        if [ $i -lt $max_retries ]; then
-            warning "Download failed, retrying in 10 seconds..."
-            sleep 10
-        fi
-    done
+    # Check available space
+    local available_space=$(df /tmp --output=avail | tail -n1)
+    local required_space=$((6 * 1024 * 1024))  # 6GB in KB
     
-    error "Download failed after $max_retries attempts"
+    if [ "$available_space" -lt "$required_space" ]; then
+        error "Insufficient disk space in /tmp"
+        error "Available: $((available_space / 1024 / 1024))GB, Required: 6GB"
+        exit 1
+    fi
+    
+    # Download with progress
+    if wget -c --progress=bar:force --timeout=60 -O "$output" "$url"; then
+        if [ -s "$output" ]; then
+            success "Download completed"
+            return 0
+        fi
+    fi
+    
+    error "Download failed"
     return 1
 }
 
-# Verify downloaded image
-verify_image() {
+# Safe installation for VPS
+install_windows_vps() {
     local image_file="$1"
     
-    log "Verifying image integrity..."
+    log "Preparing for VPS Windows installation..."
     
-    if [ ! -s "$image_file" ]; then
-        error "Image file is empty or doesn't exist"
-        return 1
+    if [ "$DANGEROUS_MODE" = true ]; then
+        echo
+        echo "🚨 DANGER MODE ACTIVE 🚨"
+        echo "Installing to boot disk will crash system immediately"
+        echo "Make sure you have:"
+        echo "- VPS console access (VNC/KVM)"
+        echo "- Rescue mode available"
+        echo "- Recent backup/snapshot"
+        echo
+        echo "The system will:"
+        echo "1. Become unresponsive immediately after dd starts"
+        echo "2. Reboot to Windows installation"
+        echo "3. Require console access for Windows setup"
+        echo
+        #read -p "Final confirmation - type 'DANGEROUS': " final_confirm
+        
+        #if [ "$final_confirm" != "DANGEROUS" ]; then
+        #    log "Installation cancelled"
+        #    exit 0
+        #fi
+        
+        log "Starting dangerous installation in 15 seconds..."
+        log "Last chance to abort with Ctrl+C..."
+        
+        for i in {15..1}; do
+            echo -ne "\rStarting in $i seconds... "
+            sleep 1
+        done
+        echo
     fi
     
-    # Check file type
-    local file_type=$(file "$image_file" 2>/dev/null)
-    log "File type: $file_type"
-    
-    # Verify gzip file
-    if echo "$file_type" | grep -q "gzip compressed"; then
-        log "Testing gzip integrity..."
-        if ! gunzip -t "$image_file" 2>/dev/null; then
-            error "Gzip file is corrupted"
-            return 1
-        fi
-        success "Gzip integrity check passed"
-    else
-        warning "File is not gzip compressed, proceeding anyway..."
-    fi
-    
-    # Check file size
-    local file_size=$(stat -c%s "$image_file" 2>/dev/null || echo "0")
-    local file_size_gb=$((file_size / 1024 / 1024 / 1024))
-    log "File size: ${file_size_gb}GB ($(numfmt --to=iec-i --suffix=B $file_size))"
-    
-    if [ "$file_size" -lt 1073741824 ]; then  # Less than 1GB
-        warning "File seems small for a Windows image"
-        echo -n "Continue anyway? (y/N): "
-        read -r continue_small
-        if [[ ! "$continue_small" =~ ^[Yy]$ ]]; then
-            return 1
-        fi
-    fi
-    
-    success "Image verification completed"
-    return 0
-}
+    # Create installation script that will run even if session disconnects
+    cat > /tmp/do_install.sh << 'INSTALL_SCRIPT'
+#!/bin/bash
+exec > /tmp/windows_install.log 2>&1
 
-# Prepare system for installation
-prepare_system() {
-    log "Preparing system for installation..."
-    
-    # Stop services that might interfere
-    local services=("docker" "snapd" "ufw" "firewalld")
-    for service in "${services[@]}"; do
-        if systemctl is-active --quiet "$service" 2>/dev/null; then
-            log "Stopping $service..."
-            systemctl stop "$service" || true
-        fi
-    done
-    
-    # Reset firewall rules
-    if command -v iptables > /dev/null; then
-        log "Resetting firewall rules..."
-        iptables -P INPUT ACCEPT 2>/dev/null || true
-        iptables -P FORWARD ACCEPT 2>/dev/null || true
-        iptables -P OUTPUT ACCEPT 2>/dev/null || true
-        iptables -t nat -F 2>/dev/null || true
-        iptables -t mangle -F 2>/dev/null || true
-        iptables -F 2>/dev/null || true
-        iptables -X 2>/dev/null || true
-    fi
-    
-    # Unmount any partitions on target disk
-    log "Unmounting partitions on $TARGET_DISK..."
-    for partition in $(mount | grep "^$TARGET_DISK" | awk '{print $1}'); do
-        log "Unmounting $partition"
-        umount "$partition" 2>/dev/null || true
-    done
-    
-    # Kill any processes using the target disk
-    if command -v lsof > /dev/null; then
-        lsof "$TARGET_DISK"* 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9 2>/dev/null || true
-    fi
-    
-    success "System preparation completed"
-}
+echo "[$(date)] Starting Windows installation..."
+echo "Target disk: $TARGET_DISK"
+echo "Image file: $1"
 
-# Install Windows to disk
-install_windows() {
-    local image_file="$1"
-    
-    log "Installing Windows 10 to $TARGET_DISK..."
-    log "This process will take 15-45 minutes depending on disk speed"
-    
-    # Final warning
-    echo
-    echo "⚠️  FINAL WARNING ⚠️"
-    echo "This will PERMANENTLY ERASE all data on $TARGET_DISK"
-    echo "The disk will be completely overwritten with Windows 10"
-    echo
-    #echo -n "Type 'INSTALL' to proceed: "
-    #read -r final_confirm
-    
-    #if [ "$final_confirm" != "INSTALL" ]; then
-    #    log "Installation cancelled by user"
-    #    exit 0
-    #fi
-    
-    echo
-    log "Starting installation..."
-    
-    # Write image to disk
-    if file "$image_file" | grep -q "gzip compressed"; then
-        log "Extracting and writing compressed image..."
-        if gunzip -c "$image_file" | dd of="$TARGET_DISK" bs=1M status=progress; then
-            success "Image written successfully"
-        else
-            error "Failed to write image to disk"
-            exit 1
-        fi
-    else
-        log "Writing raw image..."
-        if dd if="$image_file" of="$TARGET_DISK" bs=1M status=progress; then
-            success "Image written successfully"
-        else
-            error "Failed to write image to disk"
-            exit 1
-        fi
-    fi
-    
-    # Sync filesystem
-    log "Syncing filesystem..."
+# Kill everything we can
+killall -9 ssh sshd 2>/dev/null || true
+
+# Unmount target disk
+for partition in $(mount | grep "^$TARGET_DISK" | awk '{print $1}'); do
+    echo "[$(date)] Unmounting $partition"
+    umount "$partition" 2>/dev/null || true
+done
+
+# Final sync
+sync
+
+echo "[$(date)] Writing image to disk..."
+if gunzip -c "$1" | dd of="$TARGET_DISK" bs=1M; then
+    echo "[$(date)] Installation completed successfully"
     sync
+    sleep 5
+    echo "[$(date)] Rebooting..."
+    reboot -f
+else
+    echo "[$(date)] Installation failed"
+    exit 1
+fi
+INSTALL_SCRIPT
     
-    # Update partition table
-    log "Updating partition table..."
-    partprobe "$TARGET_DISK" 2>/dev/null || true
+    chmod +x /tmp/do_install.sh
     
-    success "Windows 10 installation completed!"
+    # Start installation in background
+    log "Starting installation process..."
+    log "Progress will be logged to /tmp/windows_install.log"
+    
+    nohup /tmp/do_install.sh "$image_file" &
+    local install_pid=$!
+    
+    log "Installation started (PID: $install_pid)"
+    
+    if [ "$DANGEROUS_MODE" = true ]; then
+        log "System will become unresponsive shortly..."
+        log "Monitor via console/VNC for Windows boot"
+    fi
+    
+    # Monitor for a few seconds
+    sleep 5
+    
+    if kill -0 $install_pid 2>/dev/null; then
+        success "Installation process is running"
+        if [ "$DANGEROUS_MODE" = true ]; then
+            log "You should disconnect now - system will crash soon"
+        fi
+    else
+        error "Installation process failed to start"
+        exit 1
+    fi
 }
 
-# Main installation process
-main_install() {
-    local work_dir="/tmp/win10_install"
-    local image_file="$work_dir/windows10.img"
+# Main VPS installation
+main() {
+    echo "Windows 10 VPS Installer"
+    echo "========================"
     
-    # Create work directory
+    detect_vps_environment
+    detect_vps_disk
+    
+    echo
+    echo "Installation Summary:"
+    echo "- Environment: $VPS_TYPE on $CLOUD_PROVIDER"
+    echo "- Target disk: $TARGET_DISK"
+    echo "- Dangerous mode: $DANGEROUS_MODE"
+    echo "- Image URL: $WINDOWS_IMAGE_URL"
+    echo
+    
+    # Download image
+    local work_dir="/tmp/win10_vps"
+    local image_file="$work_dir/windows10.gz"
+    
     mkdir -p "$work_dir"
     cd "$work_dir"
     
-    # Try primary URL first
-    if download_image "$WINDOWS_IMAGE_URL" "$image_file"; then
-        if verify_image "$image_file"; then
-            prepare_system
-            install_windows "$image_file"
-            return 0
-        else
-            warning "Primary image verification failed, trying backup URLs..."
-        fi
-    else
-        warning "Primary download failed, trying backup URLs..."
+    if ! download_image_vps "$WINDOWS_IMAGE_URL" "$image_file"; then
+        error "Failed to download Windows image"
+        exit 1
     fi
     
-    # Try backup URLs
-    for backup_url in "${BACKUP_URLS[@]}"; do
-        if [ -n "$backup_url" ]; then
-            log "Trying backup URL: $backup_url"
-            rm -f "$image_file"
-            if download_image "$backup_url" "$image_file"; then
-                if verify_image "$image_file"; then
-                    prepare_system
-                    install_windows "$image_file"
-                    return 0
-                fi
-            fi
-        fi
-    done
-    
-    error "All download attempts failed"
-    exit 1
-}
-
-# Reboot system
-reboot_system() {
-    echo
-    echo "🎉 Installation completed successfully!"
-    echo
-    echo "Windows 10 has been installed to $TARGET_DISK"
-    echo "The system will reboot automatically in 30 seconds"
-    echo "After reboot, Windows 10 setup will begin"
-    echo
-    echo "Press Ctrl+C to cancel automatic reboot"
-    
-    # Countdown
-    for i in {30..1}; do
-        echo -ne "\rRebooting in $i seconds... "
-        sleep 1
-    done
-    
-    echo
-    log "Rebooting system..."
-    reboot
-}
-
-# Cleanup on exit
-cleanup() {
-    local exit_code=$?
-    if [ $exit_code -ne 0 ]; then
-        error "Installation failed with exit code $exit_code"
-        echo "Log files may be available in /tmp/win10_install/"
+    # Verify image
+    log "Verifying image..."
+    if ! gunzip -t "$image_file"; then
+        error "Downloaded image is corrupted"
+        exit 1
     fi
-    exit $exit_code
+    
+    local file_size=$(stat -c%s "$image_file")
+    log "Image size: $((file_size / 1024 / 1024))MB"
+    
+    # Install
+    install_windows_vps "$image_file"
+    
+    echo
+    echo "Installation initiated!"
+    echo "Monitor: tail -f /tmp/windows_install.log"
+    
+    if [ "$DANGEROUS_MODE" = true ]; then
+        echo
+        echo "SYSTEM WILL CRASH SHORTLY!"
+        echo "Have console access ready"
+        echo "Windows should boot after reboot"
+    fi
 }
 
-trap cleanup EXIT
-
-# =============================================================================
-# MAIN EXECUTION
-# =============================================================================
-
-echo "Starting Windows 10 One-Liner Installer..."
-
-# Run all checks and installation
-check_system
-detect_target_disk
-show_system_info
-
-# Get user confirmation
-echo "This installer will:"
-echo "1. Download Windows 10 image from the configured URL"
-echo "2. Completely wipe $TARGET_DISK"
-echo "3. Install Windows 10"
-echo "4. Reboot the system"
-echo
-#echo -n "Continue? (y/N): "
-#read -r user_confirm
-
-#if [[ ! "$user_confirm" =~ ^[Yy]$ ]]; then
-#    log "Installation cancelled by user"
-#    exit 0
-#fi
-
-# Start installation
-main_install
-
-# Reboot
-reboot_system
+# Run main function
+main "$@"
