@@ -306,13 +306,13 @@ install_windows() {
     echo "This will PERMANENTLY ERASE all data on $TARGET_DISK"
     echo "The disk will be completely overwritten with Windows 10"
     echo
-    echo -n "Type 'INSTALL' to proceed: "
-    read -r final_confirm
+    #echo -n "Type 'INSTALL' to proceed: "
+    #read -r final_confirm
     
-    if [ "$final_confirm" != "INSTALL" ]; then
-        log "Installation cancelled by user"
-        exit 0
-    fi
+    #if [ "$final_confirm" != "INSTALL" ]; then
+    #    log "Installation cancelled by user"
+    #    exit 0
+    #fi
     
     echo
     log "Starting installation..."
