@@ -38,6 +38,7 @@ echo "$(date): Bắt đầu tải Windows 10..."
 
 # Tải file về
 curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
+echo "File windows already downloaded and saved in: /tmp/windows.gz"
 # Giải nén và ghi sau
 gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
 
