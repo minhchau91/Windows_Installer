@@ -5,7 +5,7 @@
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
-WINDOWS_IMAGE_URL="https://download1585.mediafire.com/o5491hknzjpgXDMnnIBehISjrEfnDzSsGXFVJBDOG6v5wT3eOI2373OllDGCIE8s2nBii11nVbVQCcZIAGQgSBuDQFSbhPUrbiRbOrLR4YJoNSoGDNmOfTKb9K4YbTn3zdXL9ebR8eGcgWFlCLyYm9f__FO0oovAidvMUsHgCnYhow/hpp7sdtlgnyzj4y/Windows10.gz"
+WINDOWS_IMAGE_URL="https://download1585.mediafire.com/1nexu7kctydggScpB4gxrEW_LWBHC5RxHWi5OeA4G3fCQZ7t4OdlgA__-vFjetuK0Po1xAPXknvoCsXa9-SQcdKbLCmeOHIL_9HAPQ1kJ0gIVE6G4Yufg6bgBvLiJAGg1phBJN3dD-dxCP_zyDl7u_rPhNAL5IOMXRcJec23tJB8tA/hpp7sdtlgnyzj4y/Windows10.gz"
 
 export LANG=C
 set -e
