@@ -386,8 +386,8 @@ prepare_system() {
     fi
     
     # Kill unnecessary processes
-    log "Terminating non-essential processes..."
-    killall -9 ssh sshd 2>/dev/null || true
+    #log "Terminating non-essential processes..."
+    #killall -9 ssh sshd 2>/dev/null || true
     
     success "System preparation completed"
 }
