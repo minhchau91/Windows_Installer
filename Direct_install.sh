@@ -1,17 +1,13 @@
 #!/bin/bash
 # Script hoàn chỉnh cuối cùng
 
-case "$1" in
-  2012)
-    URL="https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file"
-    ;;
-  10)
-    URL="https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file"
-    ;;
-  *)
-    URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
-    ;;
-esac
+if [ "$1" == "2012" ]; then 
+    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+elif [ "$1" == "10" ]; then 
+    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+else 
+    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+fi
 
 echo "=== CÀI ĐẶT WINDOWS $1 TRÊN VPS ==="
 
@@ -26,6 +22,8 @@ lsblk
 #fi
 
 WINDOWS_IMAGE_URL=$(curl -s "$URL" | grep 'download1585' | grep -oP 'href="\K[^"]+')
+
+echo "$WINDOWS_IMAGE_URL"
 
 # Tạo script đơn giản
 cat > /tmp/final_install.sh << 'SCRIPT'
