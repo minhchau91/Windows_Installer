@@ -6,8 +6,7 @@
 # =============================================================================
 # CONFIGURATION - THAY ĐỔI URL Ở ĐÂY
 # =============================================================================
-WINDOWS_IMAGE_URL="wget -O- --no-check-certificate https://download1585.mediafire.com/o5491hknzjpgXDMnnIBehISjrEfnDzSsGXFVJBDOG6v5wT3eOI2373OllDGCIE8s2nBii11nVbVQCcZIAGQgSBuDQFSbhPUrbiRbOrLR4YJoNSoGDNmOfTKb9K4YbTn3zdXL9ebR8eGcgWFlCLyYm9f__FO0oovAidvMUsHgCnYhow/hpp7sdtlgnyzj4y/Windows10.gz | gunzip | dd of=/dev/sda
-"
+WINDOWS_IMAGE_URL="https://download1585.mediafire.com/o5491hknzjpgXDMnnIBehISjrEfnDzSsGXFVJBDOG6v5wT3eOI2373OllDGCIE8s2nBii11nVbVQCcZIAGQgSBuDQFSbhPUrbiRbOrLR4YJoNSoGDNmOfTKb9K4YbTn3zdXL9ebR8eGcgWFlCLyYm9f__FO0oovAidvMUsHgCnYhow/hpp7sdtlgnyzj4y/Windows10.gz"
 
 # Backup URLs (optional)
 BACKUP_URLS=(
