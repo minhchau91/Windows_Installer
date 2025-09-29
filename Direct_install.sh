@@ -2,14 +2,19 @@
 # Script hoàn chỉnh cuối cùng
 
 if [ "$1" == "2012" ]; then 
-    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+    URL="https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file"
+    WinVersion="2012"
 elif [ "$1" == "10" ]; then 
-    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+    URL="https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file"
+    WinVersion="10"
 else 
-    WINDOWS_IMAGE_URL=$(curl -s https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file | grep 'download1585' | grep -oP 'href="\K[^"]+') 
+    URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
+    WinVersion="2016"
 fi
 
-echo "=== CÀI ĐẶT WINDOWS $1 TRÊN VPS ==="
+echo "URL: $URL"
+
+echo "=== CÀI ĐẶT WINDOWS $WinVersion TRÊN VPS ==="
 
 # Kiểm tra disk
 echo "Disk hiện tại:"
@@ -21,12 +26,11 @@ lsblk
 #    exit 1
 #fi
 
-WINDOWS_IMAGE_URL=$(curl -s "$URL" | grep 'download1585' | grep -oP 'href="\K[^"]+')
-
-echo "$WINDOWS_IMAGE_URL"
+WINDOWS_IMAGE_URL=$(curl -sL -A "Mozilla/5.0" "$URL" | grep -oP 'href="\Khttps://download[0-9]+\.mediafire\.com[^"]+')
+echo "Direct Link: $WINDOWS_IMAGE_URL"
 
 # Tạo script đơn giản
-cat > /tmp/final_install.sh << 'SCRIPT'
+cat > /tmp/final_install.sh << SCRIPT
 #!/bin/bash
 exec > /tmp/windows_install.log 2>&1
 
