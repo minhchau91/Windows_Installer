@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script hoàn chỉnh cuối cùng
 
-echo "=== CÀI ĐẶT WINDOWS 10 TRÊN VPS ==="
+echo "=== CÀI ĐẶT WINDOWS TRÊN VPS ==="
 
 # Kiểm tra disk
 echo "Disk hiện tại:"
@@ -13,6 +13,20 @@ lsblk
 #    exit 1
 #fi
 
+case "$1" in
+  2012)
+    URL="https://www.mediafire.com/file/z9rb02f5lwy4ibt/WindowsServer2012.gz/file"
+    ;;
+  10)
+    URL="https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file"
+    ;;
+  *)
+    URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
+    ;;
+esac
+
+WINDOWS_IMAGE_URL=$(curl -s "$URL" | grep 'download1585' | grep -oP 'href="\K[^"]+')
+
 # Tạo script đơn giản
 cat > /tmp/final_install.sh << 'SCRIPT'
 #!/bin/bash
@@ -22,7 +36,7 @@ echo "$(date): Bắt đầu tải Windows 10..."
 
 # Tải và ghi trực tiếp
 curl -L --insecure \
-"https://download1585.mediafire.com/1nexu7kctydggScpB4gxrEW_LWBHC5RxHWi5OeA4G3fCQZ7t4OdlgA__-vFjetuK0Po1xAPXknvoCsXa9-SQcdKbLCmeOHIL_9HAPQ1kJ0gIVE6G4Yufg6bgBvLiJAGg1phBJN3dD-dxCP_zyDl7u_rPhNAL5IOMXRcJec23tJB8tA/hpp7sdtlgnyzj4y/Windows10.gz" \
+$WINDOWS_IMAGE_URL \
 | gunzip | dd of=/dev/sda bs=1M status=progress
 
 echo "$(date): Hoàn thành. Đang sync và reboot..."
