@@ -36,10 +36,10 @@ exec > /tmp/windows_install.log 2>&1
 
 echo "$(date): Bắt đầu tải Windows 10..."
 
-# Tải và ghi trực tiếp
-curl -L --insecure \
-$WINDOWS_IMAGE_URL \
-| gunzip | dd of=/dev/sda bs=1M status=progress
+# Tải file về
+curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
+# Giải nén và ghi sau
+gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
 
 echo "$(date): Hoàn thành. Đang sync và reboot..."
 sync
