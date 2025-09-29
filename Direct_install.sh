@@ -12,7 +12,7 @@ else
     WinVersion="2016"
 fi
 
-echo "URL: $URL"
+echo "URL nè: $URL"
 
 echo "=== CÀI ĐẶT WINDOWS $WinVersion TRÊN VPS ==="
 
