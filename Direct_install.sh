@@ -44,13 +44,14 @@ gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
 echo "$(date): Hoàn thành. Đang sync và reboot..."
 sync
 sleep 3
-reboot
+#reboot
 SCRIPT
 
 chmod +x /tmp/final_install.sh
 
 # Chạy với screen để có thể detach
-screen -dmS windows_install /tmp/final_install.sh
+#screen -dmS windows_install 
+bash /tmp/final_install.sh
 
 echo "Quá trình cài đặt đã bắt đầu!"
 echo "Xem tiến trình:"
