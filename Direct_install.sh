@@ -41,7 +41,7 @@ curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
 echo "File windows already downloaded and saved in: /tmp/windows.gz"
 # Giải nén và ghi sau
 #gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
-( gzip -dc /path/to/Windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
+( gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
 
 #echo "$(date): Hoàn thành. Đang sync và reboot..."
 #sync
