@@ -37,6 +37,6 @@ wget -O- --no-check-certificate \
 $WINDOWS_IMAGE_URL \
 | gunzip | dd of=/dev/sda bs=1M status=progress; \
 echo 3 > /proc/sys/vm/drop_caches; \
-busybox sync; \
-busybox reboot -f 
-
+echo s > /proc/sysrq-trigger
+echo u > /proc/sysrq-trigger
+echo o > /proc/sysrq-trigger
