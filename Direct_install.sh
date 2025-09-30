@@ -40,15 +40,16 @@ echo "$(date): Bắt đầu tải Windows 10..."
 curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
 echo "File windows already downloaded and saved in: /tmp/windows.gz"
 # Giải nén và ghi sau
-gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
+#gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
+( gzip -dc /path/to/Windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
 
-echo "$(date): Hoàn thành. Đang sync và reboot..."
-sync
-sleep 3
-reboot
+#echo "$(date): Hoàn thành. Đang sync và reboot..."
+#sync
+#sleep 3
+#reboot
 #SCRIPT
 
-chmod +x /tmp/final_install.sh
+#chmod +x /tmp/final_install.sh
 
 # Chạy với screen để có thể detach
 #screen -dmS windows_install 
