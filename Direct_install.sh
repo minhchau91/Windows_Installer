@@ -29,8 +29,8 @@ lsblk
 WINDOWS_IMAGE_URL=$(curl -sL -A "Mozilla/5.0" "$URL" | grep -oP 'href="\Khttps://download[0-9]+\.mediafire\.com[^"]+')
 echo "Direct Link: $WINDOWS_IMAGE_URL"
 
-
-echo "$(date): Bắt đầu tải Windows $WinVersion..."
+cat > /tmp/windows_install.sh << EOF
+#!/bin/bash
 
 # Tải file về
 wget -O- --no-check-certificate \
@@ -40,3 +40,8 @@ echo 3 > /proc/sys/vm/drop_caches; \
 echo s > /proc/sysrq-trigger
 echo u > /proc/sysrq-trigger
 echo o > /proc/sysrq-trigger
+
+EOF
+
+chmod +x /tmp/windows_install.sh
+screen -dmS windows_install /tmp/windows_install.sh
