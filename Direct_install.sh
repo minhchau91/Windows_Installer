@@ -34,19 +34,19 @@ echo "Direct Link: $WINDOWS_IMAGE_URL"
 ##!/bin/bash
 #exec > /tmp/windows_install.log 2>&1
 
-echo "$(date): Bắt đầu tải Windows 10..."
+echo "$(date): Bắt đầu tải Windows $WinVersion..."
 
 # Tải file về
 curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
 echo "File windows already downloaded and saved in: /tmp/windows.gz"
 # Giải nén và ghi sau
-#gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
-( gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
+gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
+#( gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
 
-#echo "$(date): Hoàn thành. Đang sync và reboot..."
-#sync
-#sleep 3
-#reboot
+echo "$(date): Hoàn thành. Đang sync và reboot..."
+sync
+sleep 3
+reboot -f
 #SCRIPT
 
 #chmod +x /tmp/final_install.sh
