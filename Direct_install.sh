@@ -33,10 +33,10 @@ echo "Direct Link: $WINDOWS_IMAGE_URL"
 echo "$(date): Bắt đầu tải Windows $WinVersion..."
 
 # Tải file về
-curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
-echo "File windows already downloaded and saved in: /tmp/windows.gz"
-# Giải nén và ghi sau
-#gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
-gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && \
-echo "$(date): Ghi xong, chuẩn bị reboot..." && \
-sync && sleep 2 && reboot -f
+wget -O- --no-check-certificate \
+$WINDOWS_IMAGE_URL \
+| gunzip | dd of=/dev/sda bs=1M status=progress; \
+echo 3 > /proc/sys/vm/drop_caches; \
+busybox sync; \
+busybox reboot -f 
+
