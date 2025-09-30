@@ -29,10 +29,6 @@ lsblk
 WINDOWS_IMAGE_URL=$(curl -sL -A "Mozilla/5.0" "$URL" | grep -oP 'href="\Khttps://download[0-9]+\.mediafire\.com[^"]+')
 echo "Direct Link: $WINDOWS_IMAGE_URL"
 
-# Tạo script đơn giản
-#cat > /tmp/final_install.sh << SCRIPT
-##!/bin/bash
-#exec > /tmp/windows_install.log 2>&1
 
 echo "$(date): Bắt đầu tải Windows $WinVersion..."
 
@@ -40,24 +36,7 @@ echo "$(date): Bắt đầu tải Windows $WinVersion..."
 curl -L --insecure "$WINDOWS_IMAGE_URL" -o /tmp/windows.gz
 echo "File windows already downloaded and saved in: /tmp/windows.gz"
 # Giải nén và ghi sau
-gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
-#( gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && reboot -f ) & disown
-
-echo "$(date): Hoàn thành. Đang sync và reboot..."
-sync
-sleep 3
-reboot -f
-#SCRIPT
-
-#chmod +x /tmp/final_install.sh
-
-# Chạy với screen để có thể detach
-#screen -dmS windows_install 
-#bash /tmp/final_install.sh
-
-echo "Quá trình cài đặt đã bắt đầu!"
-echo "Xem tiến trình:"
-echo "  screen -r windows_install  # Attach vào session"
-echo "  tail -f /tmp/windows_install.log  # Xem log"
-echo ""
-echo "Disconnect SSH ngay để tránh gián đoạn!"
+#gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=1M status=progress
+gunzip -c /tmp/windows.gz | dd of=/dev/sda bs=4M status=progress conv=fsync && \
+echo "$(date): Ghi xong, chuẩn bị reboot..." && \
+sync && sleep 2 && reboot -f
