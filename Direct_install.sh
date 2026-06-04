@@ -8,7 +8,7 @@ elif [ "$1" == "10" ]; then
     URL="https://www.mediafire.com/file/hpp7sdtlgnyzj4y/Windows10.gz/file"
     WinVersion="10"
 elif [ "$1" == "2022" ]; then 
-    URL="https://www.mediafire.com/file/9xhkpugdmfhfy5l/Windows2022DatacenterEvaluation.gz/file"
+    URL="https://www.mediafire.com/file/qg6yk73i7vjyg33/Windows2022.gz/file"
     WinVersion="2022"
 else 
     URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
