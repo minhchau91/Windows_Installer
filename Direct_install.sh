@@ -11,7 +11,7 @@ elif [ "$1" == "2022" ]; then
     URL="https://www.mediafire.com/file/qg6yk73i7vjyg33/Windows2022.gz/file"
     WinVersion="2022"
 elif [ "$1" == "linode" ]; then
-    URL="https://www.mediafire.com/file/4u5c1gd7tmoibpo/Linode_tool_Windows2022.gz/file"
+    URL="https://www.mediafire.com/file/jrqn42c6ihufkgm/LinodeWindows2022.gz/file"
     WinVersion="2022"
 else 
     URL="https://www.mediafire.com/file/okcaojtvpksdb9z/Windows2016.gz/file"
