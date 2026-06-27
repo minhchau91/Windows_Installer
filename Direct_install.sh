@@ -22,15 +22,21 @@ echo "URL nè: $URL"
 
 echo "=== CÀI ĐẶT WINDOWS $WinVersion TRÊN VPS ==="
 
-# Kiểm tra disk
-echo "Disk hiện tại:"
+# Detect disk chứa /
+ROOT_PART=$(findmnt -n -o SOURCE /)
+DISK="/dev/$(lsblk -no PKNAME "$ROOT_PART")"
+
+echo "Disk hệ thống đang dùng: $DISK"
 lsblk
 
-#read -p "Xác nhận xóa toàn bộ /dev/sda? (YES/no): " confirm
-#if [ "$confirm" != "YES" ]; then
-#    echo "Hủy bỏ"
-#    exit 1
-#fi
+# chống ghi nhầm disk quá nhỏ
+SIZE_BYTES=$(blockdev --getsize64 "$DISK")
+MIN_BYTES=$((20 * 1024 * 1024 * 1024))
+
+if [ "$SIZE_BYTES" -lt "$MIN_BYTES" ]; then
+    echo "Lỗi: Disk $DISK nhỏ hơn 20GB, dừng để tránh ghi nhầm."
+    exit 1
+fi
 
 WINDOWS_IMAGE_URL=$(curl -sL -A "Mozilla/5.0" "$URL" | grep -oP 'href="\Khttps://download[0-9]+\.mediafire\.com[^"]+')
 echo "Direct Link: $WINDOWS_IMAGE_URL"
@@ -38,7 +44,7 @@ echo "Direct Link: $WINDOWS_IMAGE_URL"
 # Tải file về
 wget -O- --no-check-certificate \
 $WINDOWS_IMAGE_URL \
-| gunzip | dd of=/dev/sda bs=1M status=progress; \
+| gunzip | dd of="$DISK" bs=1M status=progress; \
 echo 3 > /proc/sys/vm/drop_caches; \
 echo s > /proc/sysrq-trigger
 echo u > /proc/sysrq-trigger
