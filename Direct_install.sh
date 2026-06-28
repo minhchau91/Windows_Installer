@@ -23,10 +23,18 @@ echo "URL nè: $URL"
 echo "=== CÀI ĐẶT WINDOWS $WinVersion TRÊN VPS ==="
 
 # Detect disk chứa /
-ROOT_PART=$(findmnt -n -o SOURCE /)
-DISK="/dev/$(lsblk -no PKNAME "$ROOT_PART")"
+ROOT=$(findmnt -no SOURCE /)
+ROOT=$(readlink -f "$ROOT")
 
-echo "Disk hệ thống đang dùng: $DISK"
+DISK=$(lsblk -ndo PKNAME "$ROOT")
+
+if [ -n "$DISK" ]; then
+    DISK="/dev/$DISK"
+else
+    DISK=$(lsblk -ndo NAME,TYPE | awk '$2=="disk"{print "/dev/"$1;exit}')
+fi
+
+echo "Disk hệ thống: $DISK"
 lsblk
 
 # chống ghi nhầm disk quá nhỏ
