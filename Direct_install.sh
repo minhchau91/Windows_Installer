@@ -39,10 +39,10 @@ lsblk
 
 # chống ghi nhầm disk quá nhỏ
 SIZE_BYTES=$(blockdev --getsize64 "$DISK")
-MIN_BYTES=$((20 * 1024 * 1024 * 1024))
+MIN_BYTES=$((15 * 1024 * 1024 * 1024))
 
 if [ "$SIZE_BYTES" -lt "$MIN_BYTES" ]; then
-    echo "Lỗi: Disk $DISK nhỏ hơn 20GB, dừng để tránh ghi nhầm."
+    echo "Lỗi: Disk $DISK nhỏ hơn 15GB, dừng để tránh ghi nhầm."
     exit 1
 fi
 
